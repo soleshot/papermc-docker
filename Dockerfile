@@ -6,17 +6,27 @@ FROM alpine:latest
 # Environment variables
 ENV MC_VERSION="latest" \
     PAPER_BUILD="latest" \
-    EULA="false" \
+    EULA="true" \
     MC_RAM="" \
     JAVA_OPTS=""
 
 COPY papermc.sh .
 RUN apk update \
-    && apk add openjdk21-jre \
-    && apk add bash \
-    && apk add wget \
-    && apk add jq \
-    && mkdir /papermc
+    && apk add openjdk21 \
+    bash \
+    curl \
+    wget \
+    jq \
+    dcron \
+    rsync
+
+# Create required directories
+RUN mkdir /papermc \
+    && mkdir /backups \
+    && mkdir /logs
+
+COPY start-backup.sh /scripts/
+RUN chmod +x /scripts/*.sh
 
 # Start script
 CMD ["bash", "./papermc.sh"]
@@ -25,3 +35,5 @@ CMD ["bash", "./papermc.sh"]
 EXPOSE 25565/tcp
 EXPOSE 25565/udp
 VOLUME /papermc
+VOLUME /logs
+VOLUME /backups
