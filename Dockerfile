@@ -3,14 +3,7 @@
 # Even with bash installed.     -Corbe
 FROM alpine:latest
 
-# Environment variables
-ENV MC_VERSION="latest" \
-    PAPER_BUILD="latest" \
-    EULA="true" \
-    MC_RAM="" \
-    JAVA_OPTS=""
-
-COPY papermc.sh .
+# Install essential development tools
 RUN apk update \
     && apk add openjdk21 \
     bash \
@@ -18,15 +11,35 @@ RUN apk update \
     wget \
     jq \
     dcron \
-    rsync
+    rsync \
+    sudo
 
-# Create required directories
+# Environment variables
+ENV MC_VERSION="latest" \
+    PAPER_BUILD="latest" \
+    EULA="true" \
+    MC_RAM="" \
+    JAVA_OPTS=""
+
+# Create a non-root user for development
+ARG USERNAME=minecraft
+
+RUN addgroup -S $USERNAME && \
+    adduser -S -G $USERNAME $USERNAME && \
+    echo "$USERNAME ALL=(ALL) NOPASSWD: /usr/sbin/crond, /usr/bin/crontab" > /etc/sudoers.d/$USERNAME && \
+    chmod 0440 /etc/sudoers.d/$USERNAME
+
+# Create required directories and access
 RUN mkdir /papermc \
     && mkdir /backups \
-    && mkdir /logs
-
+    && mkdir /logs \
+    && chmod -R 777 /papermc
+COPY papermc.sh .
 COPY start-backup.sh /scripts/
 RUN chmod +x /scripts/*.sh
+
+# Set the default user
+USER $USERNAME
 
 # Start script
 CMD ["bash", "./papermc.sh"]
