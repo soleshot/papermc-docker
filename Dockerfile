@@ -26,7 +26,7 @@ ARG USERNAME=minecraft
 
 RUN addgroup -S $USERNAME && \
     adduser -S -G $USERNAME $USERNAME && \
-    echo "$USERNAME ALL=(ALL) NOPASSWD: /usr/sbin/crond, /usr/bin/crontab" > /etc/sudoers.d/$USERNAME && \
+    echo "$USERNAME ALL=(ALL) NOPASSWD: /usr/sbin/crond, /usr/bin/crontab, /papermc/eula.txt" > /etc/sudoers.d/$USERNAME && \
     chmod 0440 /etc/sudoers.d/$USERNAME
 
 # Create required directories and access

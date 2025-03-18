@@ -40,7 +40,7 @@ if [[ ! -e $JAR_NAME ]]; then
 fi
 
 # Update eula.txt with current setting
-# su-exec root echo "eula=${EULA:-false}" >eula.txt
+# sudo echo "eula=${EULA:-true}" >eula.txt
 
 # Add RAM options to Java options if necessary
 if [[ -n $MC_RAM ]]; then
