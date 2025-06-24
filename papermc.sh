@@ -21,8 +21,8 @@ fi
 echo "Targeting minecraft version: $MC_VERSION"
 if [[ $PAPER_BUILD == latest ]]; then
   # Get the latest build
-  PAPER_BUILD=$(curl -s https://api.papermc.io/v2/projects/paper/versions/${MC_VERSION}/builds |
-    jq '.builds | map(select(.channel == "default") | .build) | .[-1]')
+  PAPER_BUILDS_JSON=$(curl -s "https://api.papermc.io/v2/projects/paper/versions/${MC_VERSION}")
+  PAPER_BUILD=$(echo "$PAPER_BUILDS_JSON" | jq '.builds | max')
 fi
 echo "Targeting paper build version: $PAPER_BUILD"
 JAR_NAME="paper-${MC_VERSION}-${PAPER_BUILD}.jar"
