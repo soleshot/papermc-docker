@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Enter server directory
-cd papermc
+cd /papermc
 
 # Set nullstrings back to 'latest'
 : ${MC_VERSION:='latest'}
@@ -11,36 +11,62 @@ cd papermc
 MC_VERSION="${MC_VERSION,,}"
 PAPER_BUILD="${PAPER_BUILD,,}"
 
-# Get version information and build download URL and jar name
-URL='https://api.papermc.io/v2/projects/paper'
+# Resolve the version + build via the PaperMC Fill (v3) API.
+# The old api.papermc.io/v2 API is deprecated and no longer lists Paper
+# versions >= 26.x, so "latest" there would silently stay on the 1.21 line.
+API='https://fill.papermc.io/v3/projects/paper'
+UA='papermc-docker (+https://github.com/Phyremaster/papermc-docker)'
+
 if [[ $MC_VERSION == latest ]]; then
-  # Get the latest MC version
-  MC_VERSION=$(curl -s ${URL} |
-    jq -r '.versions[-1]')
+  # Newest full release (skip rc/pre/beta versions, which contain a hyphen)
+  MC_VERSION=$(curl -s -A "$UA" "$API" |
+    jq -r '[.versions[][] | select(test("-") | not)] | first')
 fi
 echo "Targeting minecraft version: $MC_VERSION"
-if [[ $PAPER_BUILD == latest ]]; then
-  # Get the latest build
-  PAPER_BUILDS_JSON=$(curl -s "https://api.papermc.io/v2/projects/paper/versions/${MC_VERSION}")
-  PAPER_BUILD=$(echo "$PAPER_BUILDS_JSON" | jq '.builds | max')
-fi
-echo "Targeting paper build version: $PAPER_BUILD"
-JAR_NAME="paper-${MC_VERSION}-${PAPER_BUILD}.jar"
 
-URL="https://api.papermc.io/v2/projects/paper/versions/${MC_VERSION}/builds/${PAPER_BUILD}/downloads/${JAR_NAME}"
+# Fetch the build metadata. The v3 response embeds the jar name and a ready-made
+# download URL (on fill-data.papermc.io), so we no longer build the URL by hand.
+if [[ $PAPER_BUILD == latest ]]; then
+  BUILD_JSON=$(curl -s -A "$UA" "${API}/versions/${MC_VERSION}/builds/latest")
+else
+  BUILD_JSON=$(curl -s -A "$UA" "${API}/versions/${MC_VERSION}/builds/${PAPER_BUILD}")
+fi
+
+PAPER_BUILD=$(echo "$BUILD_JSON" | jq -r '.id')
+JAR_NAME=$(echo "$BUILD_JSON" | jq -r '.downloads."server:default".name')
+JAR_URL=$(echo "$BUILD_JSON" | jq -r '.downloads."server:default".url')
+JAR_SHA256=$(echo "$BUILD_JSON" | jq -r '.downloads."server:default".checksums.sha256')
+echo "Targeting paper build version: $PAPER_BUILD"
+
+if [[ -z $JAR_URL || $JAR_URL == null ]]; then
+  echo "ERROR: could not resolve a Paper download for MC_VERSION='${MC_VERSION}' PAPER_BUILD='${PAPER_BUILD}'." >&2
+  echo "Browse valid values at ${API} ." >&2
+  exit 1
+fi
 
 # Update if necessary
 if [[ ! -e $JAR_NAME ]]; then
   # Remove old server jar(s)
-  rm -f *.jar
+  rm -f ./*.jar
   # Download new server jar
-  echo "Downloading ${URL}"
+  echo "Downloading ${JAR_URL}"
   echo "Saving to: ${JAR_NAME}"
-  wget "$URL" -O "$JAR_NAME"
+  wget "$JAR_URL" -O "$JAR_NAME"
+
+  # Verify integrity against the checksum the API gave us
+  if [[ -n $JAR_SHA256 && $JAR_SHA256 != null ]]; then
+    if ! echo "${JAR_SHA256}  ${JAR_NAME}" | sha256sum -c -; then
+      echo "ERROR: checksum mismatch for ${JAR_NAME}; removing corrupt download." >&2
+      rm -f "$JAR_NAME"
+      exit 1
+    fi
+  fi
 fi
 
-# Update eula.txt with current setting
-# sudo echo "eula=${EULA:-true}" >eula.txt
+# Accept (or decline) the Minecraft EULA per the EULA env var.
+# cwd is /papermc, owned by this user, so a plain write works (the previous
+# `sudo echo ... > eula.txt` failed because the shell did the redirect, not sudo).
+echo "eula=${EULA:-true}" > eula.txt
 
 # Add RAM options to Java options if necessary
 if [[ -n $MC_RAM ]]; then

@@ -1,9 +1,12 @@
 #!/bin/bash
 
 # Configuration
-SERVER_DIR="/workspace/papermc"
-BACKUP_DIR="/workspace/backups"
-LOG_DIR="/workspace/logs"
+# Defaults match the production image layout (/papermc, /backups, /logs).
+# cron runs with a minimal environment, so these defaults must be correct on
+# their own; override via env only when the layout differs (e.g. dev/workspace).
+SERVER_DIR="${SERVER_DIR:-/papermc}"
+BACKUP_DIR="${BACKUP_DIR:-/backups}"
+LOG_DIR="${LOG_DIR:-/logs}"
 LOG_FILE="${LOG_DIR}/backup.log"
 MAX_BACKUPS=10
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")

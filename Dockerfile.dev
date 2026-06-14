@@ -1,8 +1,9 @@
-FROM alpine:latest
+# Pinned by digest (tag: 25-jdk-alpine = JDK 25.0.3+9). Refresh as described in
+# the comment at the top of ./Dockerfile when taking security patches.
+FROM eclipse-temurin:25-jdk-alpine@sha256:30d9f87d702c2c1c601ed0d31e0c88ea1ea474ee7676cda7b7a59e759181c4dd
 
-# Install essential development tools
-RUN apk update \
-    && apk add openjdk21 \
+# Install essential development tools (full JDK 25 comes from the base image)
+RUN apk add --no-cache \
     bash \
     curl \
     wget \
@@ -26,11 +27,10 @@ RUN addgroup -S $USERNAME && \
     echo "$USERNAME ALL=(ALL) NOPASSWD: /usr/sbin/crond, /usr/bin/crontab" > /etc/sudoers.d/$USERNAME && \
     chmod 0440 /etc/sudoers.d/$USERNAME
 
-# Create required directories and access
-RUN mkdir /papermc \
-    && mkdir /backups \
-    && mkdir /logs \
-    && chmod -R 750 /papermc
+# Create required directories (incl. the /workspace WORKDIR) owned by the dev
+# user, so it can read/write them when the container runs as a non-root user.
+RUN mkdir /papermc /backups /logs /workspace \
+    && chown -R $USERNAME:$USERNAME /papermc /backups /logs /workspace
 
 COPY start-backup.sh /scripts/
 RUN chmod +x /scripts/*.sh

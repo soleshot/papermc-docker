@@ -43,12 +43,12 @@ There are several command line options that users may want to specify when utili
 
 There is one more command line option, but it is a bit special and deserves its own section.
 ### Environment Variables
-Environment variables are options that are specified in the format `-e <NAME>="<VALUE>"` where `<NAME>` is the name of the environment variable and `<VALUE>` is the value that the environment variable is being set to. Please note that setting an evironment variable with no value does not leave it at default; instead, this sets it to an empty string, which may cause issues. This image has four environment variables:
+Environment variables are options that are specified in the format `-e <NAME>="<VALUE>"` where `<NAME>` is the name of the environment variable and `<VALUE>` is the value that the environment variable is being set to. Please note that setting an evironment variable with no value does not leave it at default; instead, this sets it to an empty string, which may cause issues. This image has five environment variables:
 - Minecraft Version
   - **Name:** `MC_VERSION`
   - Set this to the Minecraft version that the server should support.
   - Note: there must be a PaperMC release for the specified version of Minecraft.
-  - If this is not set, the latest version supported by PaperMC will be used.
+  - If this is not set, the latest **stable** release is used. Paper now uses date-based versions (e.g. `26.1`); pre-releases such as `26.2-rc-2` are skipped unless you request one explicitly.
   - Changing this on an existing server will change the version *without wiping the server*.
   - `-e MC_VERSION="<latest>"`
 - PaperMC Build
@@ -77,7 +77,7 @@ Environment variables are options that are specified in the format `-e <NAME>="<
 ## Further Setup
 From this point, the server should be configured in the same way as any other Minecraft server. The server's files, including `server.properties`, can be found in the volume that was specified earlier. The port that was specified earlier will probably need to be forwarded as well. For details on how to do this and other such configuration, Google it, because it works the same as any other Minecraft server.
 # Technical
-This project *does **NOT** redistribute the Minecraft server files*. Instead, the (very small) script that is inside of the image, `papermc.sh`, downloads these files from their official sources during installation.
+This project *does **NOT** redistribute the Minecraft server files*. Instead, the (very small) script that is inside of the image, `papermc.sh`, downloads these files from their official sources (the PaperMC [Fill API](https://docs.papermc.io/misc/downloads-service/)) during installation, verifying each jar against the checksum the API provides. The image bundles the Java runtime that the targeted Paper build needs — currently **Java 25** (Eclipse Temurin), which Paper 26.1+ requires.
 
 **PLEASE NOTE:** This is an unofficial project. I did not create PaperMC. [This is the official PaperMC website.](https://papermc.io/)
 
